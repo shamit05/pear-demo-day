@@ -12,7 +12,7 @@ A complete demo day platform for showcasing startups and facilitating investor-f
 
 ## Getting Started
 
-Visit [https://pear-demo-day.vercel.app/].
+Visit [https://pear-demo-day.vercel.app/](https://pear-demo-day.vercel.app/).
 
 Alternatively, set it up locally:
 ```bash
