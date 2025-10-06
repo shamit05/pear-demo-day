@@ -1,17 +1,39 @@
-// HeaderNav Component - Pear Design
-// Matches exact design from HTML
-
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import { User } from '@/types/user';
 
 export default function HeaderNav() {
   const pathname = usePathname();
+  const router = useRouter();
   const isCompanyPage = pathname?.startsWith('/company/');
+  const [user, setUser] = useState<User | null>(null);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+
+  useEffect(() => {
+    const userData = localStorage.getItem('user');
+    if (userData) {
+      setUser(JSON.parse(userData));
+    }
+  }, [pathname]);
+
+  const logout = () => {
+    localStorage.removeItem('user');
+    setUser(null);
+    router.push('/');
+  };
+
+  const getDashboardLink = () => {
+    if (!user) return '/login';
+    if (user.role === 'admin') return '/dashboard/admin';
+    if (user.role === 'founder') return '/dashboard/founder';
+    return '/dashboard/investor';
+  };
   
   return (
-    <header className="sticky top-0 z-10 bg-white/80 backdrop-blur-md border-b border-black/10">
+    <header className="sticky top-0 z-20 bg-white/80 backdrop-blur-md border-b border-black/10">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           <div className="flex items-center space-x-8">
@@ -27,28 +49,74 @@ export default function HeaderNav() {
             {/* Desktop Navigation */}
             <nav className="hidden md:flex items-center space-x-6">
               <Link 
-                className={`text-sm font-medium transition ${isCompanyPage ? 'text-black/60 hover:text-black' : 'text-black'}`}
+                className={`text-sm font-medium transition ${!isCompanyPage && pathname === '/' ? 'text-black' : 'text-black/60 hover:text-black'}`}
                 href="/"
               >
                 Demo Day
               </Link>
+              {user && (
+                <Link 
+                  className={`text-sm font-medium transition ${pathname?.startsWith('/dashboard') ? 'text-black' : 'text-black/60 hover:text-black'}`}
+                  href={getDashboardLink()}
+                >
+                  Dashboard
+                </Link>
+              )}
             </nav>
           </div>
           
           <div className="flex items-center space-x-4">
-            {/* User Avatar */}
-            <div className="relative group cursor-pointer">
-              <img 
-                src="https://bundui-images.netlify.app/avatars/01.png" 
-                alt="User avatar"
-                className="w-10 h-10 rounded-full shadow-md hover:shadow-lg transition-all"
-              />
-              {/* Tooltip on hover */}
-              <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-black/10 p-3 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
-                <p className="text-sm font-medium text-black">Investor Portal</p>
-                <p className="text-xs text-black/60 mt-1">View your saved companies</p>
-              </div>
-            </div>
+            {user ? (
+              <>
+                {/* Profile Dropdown */}
+                <div className="relative">
+                  <button
+                    onClick={() => setDropdownOpen(!dropdownOpen)}
+                    className="flex items-center gap-2 hover:opacity-80 transition"
+                  >
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-400 to-blue-500 flex items-center justify-center text-white font-bold">
+                      {user.name.charAt(0)}
+                    </div>
+                  </button>
+                  
+                  {/* Dropdown Menu */}
+                  {dropdownOpen && (
+                    <>
+                      <div 
+                        className="fixed inset-0 z-10" 
+                        onClick={() => setDropdownOpen(false)}
+                      />
+                      <div className="absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50">
+                        <div className="px-4 py-3 border-b border-gray-200">
+                          <p className="text-sm font-semibold text-gray-900">{user.name}</p>
+                          <p className="text-xs text-gray-500 mt-1">{user.email}</p>
+                          <p className="text-xs text-[var(--button-color)] font-medium mt-1 capitalize">
+                            {user.role}
+                          </p>
+                        </div>
+                        <button
+                          onClick={() => {
+                            logout();
+                            setDropdownOpen(false);
+                          }}
+                          className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition"
+                        >
+                          Logout
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </>
+            ) : (
+              /* Login Button */
+              <Link
+                href="/login"
+                className="px-4 py-2 border-2 border-black bg-transparent text-black rounded-lg hover:bg-black hover:text-white transition font-medium text-sm"
+              >
+                Login
+              </Link>
+            )}
           </div>
         </div>
       </div>

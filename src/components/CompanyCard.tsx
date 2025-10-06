@@ -26,12 +26,8 @@ export default function CompanyCard({ company }: CompanyCardProps) {
         
         {/* Company Info */}
         <div className="p-6">
-          <p className="font-bold font-[family-name:var(--font-display)] text-2xl text-black">
-            {company.name}
-          </p>
-          <p className="text-base text-black/60 mt-2 font-[family-name:var(--font-body)]">
-            {company.tagline}
-          </p>
+          <h3 className="text-2xl font-bold text-black mb-2 line-clamp-1">{company.name}</h3>
+          <p className="text-base text-black/70 mb-4 line-clamp-2">{company.tagline}</p>
         </div>
       </div>
     </Link>

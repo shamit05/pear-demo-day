@@ -1,5 +1,3 @@
-// Footer Component - Pear Design
-
 export default function Footer() {
   return (
     <footer className="bg-[#354227] border-t border-[#354227] mt-16">

@@ -1,25 +1,40 @@
-// Company Detail Page
-// Matches exact design from HTML
-
 'use client';
 
-import { useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import { useParams, useRouter } from 'next/navigation';
 import HeaderNav from '@/components/HeaderNav';
 import Footer from '@/components/Footer';
+import ConnectionModal from '@/components/ConnectionModal';
 import { mockCompanies } from '@/data/mockData';
+import { User } from '@/types/user';
 import Link from 'next/link';
 
 export default function CompanyDetailPage() {
   const params = useParams();
+  const router = useRouter();
   const [modalOpen, setModalOpen] = useState(false);
   const [founderModalOpen, setFounderModalOpen] = useState(false);
-  const [selectedFounder, setSelectedFounder] = useState<any>(null);
+  const [selectedFounder, setSelectedFounder] = useState<{ name: string; role: string; bio: string; linkedIn: string; } | null>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
+    firm: '',
+    linkedIn: '',
     message: '',
+    interests: [] as string[],
+    checkSize: '',
+    timeline: '',
   });
+  const [submitting, setSubmitting] = useState(false);
+  const [submitSuccess, setSubmitSuccess] = useState(false);
+
+  useEffect(() => {
+    const userData = localStorage.getItem('user');
+    if (userData) {
+      setUser(JSON.parse(userData));
+    }
+  }, []);
 
   // Find the company by ID
   const company = mockCompanies.find(c => c.id === params.id);
@@ -39,13 +54,51 @@ export default function CompanyDetailPage() {
     );
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Handle form submission
-    console.log('Form submitted:', formData);
-    setModalOpen(false);
-    // Reset form
-    setFormData({ name: '', email: '', message: '' });
+    setSubmitting(true);
+
+    try {
+      const response = await fetch('/api/connections', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          investorName: formData.name,
+          investorEmail: formData.email,
+          investorFirm: formData.firm,
+          investorLinkedIn: formData.linkedIn,
+          companyId: company.id,
+          companyName: company.name,
+          message: formData.message,
+          interests: formData.interests,
+          checkSize: formData.checkSize,
+          timeline: formData.timeline,
+        }),
+      });
+
+      if (response.ok) {
+        setSubmitSuccess(true);
+        setTimeout(() => {
+          setModalOpen(false);
+          setSubmitSuccess(false);
+          // Reset form
+          setFormData({
+            name: '',
+            email: '',
+            firm: '',
+            linkedIn: '',
+            message: '',
+            interests: [],
+            checkSize: '',
+            timeline: '',
+          });
+        }, 2000);
+      }
+    } catch (error) {
+      console.error('Error submitting connection request:', error);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -112,7 +165,7 @@ export default function CompanyDetailPage() {
                   <h1 className="text-5xl font-black text-gray-900 font-[family-name:var(--font-display)]">
                     {company.name}
                   </h1>
-                  <p className="text-lg text-gray-600">
+                  <p className="text-xl text-gray-600 leading-relaxed">
                     {company.description}
                   </p>
                   <div className="flex flex-wrap gap-2">
@@ -154,9 +207,12 @@ export default function CompanyDetailPage() {
                     href={company.pitchDeckUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex h-12 items-center justify-center rounded-lg border-2 border-black bg-transparent px-6 text-sm font-bold text-black shadow-sm transition-colors hover:bg-black hover:text-white"
+                    className="inline-flex h-12 items-center justify-center gap-2 rounded-lg border-2 border-black bg-transparent px-6 text-sm font-bold text-black shadow-sm transition-colors hover:bg-black hover:text-white"
                   >
                     View Pitch Deck
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                    </svg>
                   </a>
                 )}
               </div>
@@ -170,8 +226,15 @@ export default function CompanyDetailPage() {
                 <div className="flex items-center justify-between">
                   <h3 className="text-3xl font-bold text-gray-900">Meet the Founders</h3>
                   <button 
-                    onClick={() => setModalOpen(true)}
-                    className="px-6 py-3 items-center justify-center rounded-lg border-2 border-[var(--button-color)] bg-[var(--button-color)] text-base font-bold text-white shadow-sm transition-colors hover:bg-[var(--button-color)]/90"
+                    onClick={() => {
+                      if (!user) {
+                        localStorage.setItem('redirectAfterLogin', `/company/${company.id}`);
+                        router.push('/login');
+                      } else {
+                        setModalOpen(true);
+                      }
+                    }}
+                    className="px-6 py-3 items-center justify-center rounded-lg border-2 border-[#354227] bg-transparent text-[#354227] text-base font-bold shadow-sm transition-colors hover:bg-[#354227] hover:text-[var(--fill-color)]"
                   >
                     Connect with Team
                   </button>
@@ -205,7 +268,7 @@ export default function CompanyDetailPage() {
           <section className="w-full py-12 bg-[var(--fill-color)]" id="details">
             <div className="mx-auto max-w-7xl px-6 space-y-8">
               <h3 className="text-3xl font-bold text-gray-900">Company Details</h3>
-              <div className="space-y-4 text-base">
+              <div className="space-y-4 text-lg">
               <div className="flex justify-between border-t border-gray-200/50 pt-4">
                 <span className="text-gray-500">Location</span>
                 <span className="font-medium text-gray-800">{company.location}</span>
@@ -242,88 +305,17 @@ export default function CompanyDetailPage() {
 
       <Footer />
 
-      {/* Modal */}
-      {modalOpen && (
-        <>
-          {/* Backdrop */}
-          <div 
-            onClick={() => setModalOpen(false)}
-            className="fixed inset-0 z-30 bg-black/50 backdrop-blur-sm animate-in fade-in duration-300"
-          />
-          
-          {/* Modal Content */}
-          <div className="fixed inset-0 z-40 flex items-center justify-center p-4 animate-in fade-in zoom-in-95 duration-300">
-            <div className="w-full max-w-md p-8 bg-white rounded-xl shadow-lg">
-              <div className="flex justify-between items-start">
-                <h2 className="text-2xl font-bold text-gray-900">
-                  Connect with {company.name}
-                </h2>
-                <button 
-                  onClick={() => setModalOpen(false)}
-                  className="text-gray-400 hover:text-gray-600"
-                >
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path d="M6 18L18 6M6 6l12 12" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" />
-                  </svg>
-                </button>
-              </div>
-              
-              <form onSubmit={handleSubmit} className="mt-6 space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700" htmlFor="name">
-                    Your Name
-                  </label>
-                  <input 
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[var(--button-color)] focus:ring-[var(--button-color)] sm:text-sm px-3 py-2 border"
-                    id="name"
-                    type="text"
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    required
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700" htmlFor="email">
-                    Your Email
-                  </label>
-                  <input 
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[var(--button-color)] focus:ring-[var(--button-color)] sm:text-sm px-3 py-2 border"
-                    id="email"
-                    type="email"
-                    value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    required
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700" htmlFor="message">
-                    Message
-                  </label>
-                  <textarea 
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[var(--button-color)] focus:ring-[var(--button-color)] sm:text-sm px-3 py-2 border"
-                    id="message"
-                    rows={4}
-                    value={formData.message}
-                    onChange={(e) => setFormData({ ...formData, message: e.target.value })}
-                    required
-                  />
-                </div>
-                
-                <div className="mt-8 flex justify-end">
-                  <button 
-                    type="submit"
-                    className="inline-flex justify-center rounded-md border-2 border-[var(--button-color)] bg-[var(--button-color)] px-4 py-2 text-sm font-bold text-white shadow-sm hover:bg-[var(--button-color)]/90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--button-color)] focus-visible:ring-offset-2"
-                  >
-                    Send Message
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        </>
-      )}
+      {/* Connection Modal */}
+      <ConnectionModal
+        isOpen={modalOpen}
+        onClose={() => setModalOpen(false)}
+        companyName={company.name}
+        formData={formData}
+        setFormData={setFormData}
+        onSubmit={handleSubmit}
+        submitting={submitting}
+        submitSuccess={submitSuccess}
+      />
 
       {/* Founder Bio Modal */}
       {founderModalOpen && selectedFounder && (
@@ -378,12 +370,12 @@ export default function CompanyDetailPage() {
                           href={selectedFounder.linkedIn}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="flex items-center gap-2 px-4 py-2 border-2 border-black bg-transparent text-black rounded-lg hover:bg-black hover:text-white transition"
+                          className="flex items-center gap-2 px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800 transition font-medium"
                         >
-                          <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 256 256">
-                            <path d="M216,24H40A16,16,0,0,0,24,40V216a16,16,0,0,0,16,16H216a16,16,0,0,0,16-16V40A16,16,0,0,0,216,24Zm0,192H40V40H216V216ZM96,112v64a8,8,0,0,1-16,0V112a8,8,0,0,1,16,0Zm88,28v36a8,8,0,0,1-16,0V140a20,20,0,0,0-40,0v36a8,8,0,0,1-16,0V112a8,8,0,0,1,15.79-1.78A36,36,0,0,1,184,140ZM100,84A12,12,0,1,1,88,72,12,12,0,0,1,100,84Z"></path>
-                          </svg>
                           LinkedIn
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                          </svg>
                         </a>
                       )}
                       {selectedFounder.twitter && (
@@ -393,10 +385,10 @@ export default function CompanyDetailPage() {
                           rel="noopener noreferrer"
                           className="flex items-center gap-2 px-4 py-2 border-2 border-black bg-transparent text-black rounded-lg hover:bg-black hover:text-white transition"
                         >
-                          <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 256 256">
-                            <path d="M247.39,68.94A8,8,0,0,0,240,64H209.57A48.66,48.66,0,0,0,168.1,40a46.91,46.91,0,0,0-33.75,13.7A47.9,47.9,0,0,0,120,88v6.09C79.74,83.47,46.81,50.72,46.46,50.37a8,8,0,0,0-13.65,4.92c-4.31,47.79,9.57,79.77,22,98.18a110.93,110.93,0,0,0,21.88,24.2c-15.23,17.53-39.21,26.74-39.47,26.84a8,8,0,0,0-3.85,11.93c.75,1.12,3.75,5.05,11.08,8.72C53.51,229.7,65.48,232,80,232c70.67,0,129.72-54.42,135.75-124.44l29.91-29.9A8,8,0,0,0,247.39,68.94Z"></path>
-                          </svg>
                           Twitter
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                          </svg>
                         </a>
                       )}
                     </div>
@@ -407,10 +399,16 @@ export default function CompanyDetailPage() {
                 <div className="pt-4 border-t border-gray-200">
                   <button 
                     onClick={() => {
-                      setFounderModalOpen(false);
-                      setModalOpen(true);
+                      if (!user) {
+                        setFounderModalOpen(false);
+                        localStorage.setItem('redirectAfterLogin', `/company/${company.id}`);
+                        router.push('/login');
+                      } else {
+                        setFounderModalOpen(false);
+                        setModalOpen(true);
+                      }
                     }}
-                    className="w-full h-12 items-center justify-center rounded-lg border-2 border-[var(--button-color)] bg-[var(--button-color)] px-6 text-sm font-bold text-white shadow-sm transition-colors hover:bg-[var(--button-color)]/90"
+                    className="w-full h-12 items-center justify-center rounded-lg border-2 border-[#354227] bg-transparent px-6 text-sm font-bold text-[#354227] shadow-sm transition-colors hover:bg-[#354227] hover:text-[var(--fill-color)]"
                   >
                     Connect with {company.name} Team
                   </button>

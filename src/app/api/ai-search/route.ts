@@ -1,11 +1,8 @@
-// AI Search API Route using Gemini with Function Calling
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { NextResponse } from 'next/server';
 import { mockCompanies } from '@/data/mockData';
 
 const genAI = new GoogleGenerativeAI('AIzaSyBrDOHW8WfM89Qjtc5OHNPZX8e2mWlWacA');
-
-// Define the function schema for filtering companies
 const filterCompaniesFunction = {
   name: 'filter_companies',
   description: 'Filter companies based on various criteria like industry, stage, batch, tags, location, or any text in name/description',
@@ -101,7 +98,7 @@ Be flexible and understand natural language queries like:
       const args = functionCall.args;
       
       // Apply filters to companies
-      let filteredCompanies = mockCompanies.filter((company) => {
+      const filteredCompanies = mockCompanies.filter((company) => {
         // Industry filter
         if (args.industries && args.industries.length > 0) {
           if (!args.industries.includes(company.industry)) return false;
@@ -166,10 +163,22 @@ Be flexible and understand natural language queries like:
       filters: {},
       query,
     });
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('AI Search Error:', error);
+    
+    // Check for rate limiting or quota errors
+    const err = error as Error;
+    let errorMessage = 'Failed to process AI search';
+    if (err?.message?.includes('quota') || err?.message?.includes('rate limit')) {
+      errorMessage = 'API rate limit exceeded. Please try again in a few moments.';
+    } else if (err?.message?.includes('API key')) {
+      errorMessage = 'API configuration error. Please contact support.';
+    } else if (err?.message) {
+      errorMessage = `Search error: ${err.message}`;
+    }
+    
     return NextResponse.json(
-      { error: 'Failed to process AI search', companies: mockCompanies },
+      { error: errorMessage, companies: mockCompanies },
       { status: 500 }
     );
   }

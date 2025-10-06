@@ -45,8 +45,8 @@
     background: var(--background-color);
     color: var(--text-primary);
     font-family: 'Cera Pro', 'Inter', sans-serif;
-    font-size: 16px;
-    line-height: 1.5;
+    font-size: 18px;
+    line-height: 1.6;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
