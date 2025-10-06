@@ -4,7 +4,7 @@ export default function Footer() {
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <div className="flex items-center justify-between text-[var(--fill-color)]">
           {/* Left: Copyright */}
-          <p className="text-sm">© 2024 Pear. All rights reserved.</p>
+          <p className="text-sm">© 2025 Pear. All rights reserved.</p>
           
           {/* Right: Links and Social */}
           <div className="flex items-center gap-6">

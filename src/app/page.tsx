@@ -3,27 +3,69 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import HeaderNav from '@/components/HeaderNav';
 import Footer from '@/components/Footer';
 import CompanyGrid from '@/components/CompanyGrid';
-import { mockCompanies, filterOptions } from '@/data/mockData';
+import { filterOptions } from '@/data/mockData';
+import { Company } from '@/types';
 
 export default function Home() {
   const [searchQuery, setSearchQuery] = useState('');
   const [industryFilters, setIndustryFilters] = useState<string[]>([]);
   const [stageFilters, setStageFilters] = useState<string[]>([]);
   const [batchFilters, setBatchFilters] = useState<string[]>([]);
-  const [aiFilteredCompanies, setAiFilteredCompanies] = useState(mockCompanies);
+  const [allCompanies, setAllCompanies] = useState<Company[]>([]);
+  const [aiFilteredCompanies, setAiFilteredCompanies] = useState<Company[]>([]);
   const [isAiSearching, setIsAiSearching] = useState(false);
   const [appliedFilters, setAppliedFilters] = useState<Record<string, string[]> | null>(null);
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const [searchError, setSearchError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  // Fetch companies from API with caching
+  useEffect(() => {
+    async function fetchCompanies() {
+      // Check if we have cached data in sessionStorage
+      const cachedData = sessionStorage.getItem('companies');
+      const cacheTimestamp = sessionStorage.getItem('companies_timestamp');
+      const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+      
+      if (cachedData && cacheTimestamp) {
+        const age = Date.now() - parseInt(cacheTimestamp);
+        if (age < CACHE_DURATION) {
+          // Use cached data
+          const data = JSON.parse(cachedData);
+          setAllCompanies(data);
+          setAiFilteredCompanies(data);
+          setLoading(false);
+          return;
+        }
+      }
+
+      // Fetch fresh data
+      try {
+        const response = await fetch('/api/companies');
+        const data = await response.json();
+        setAllCompanies(data);
+        setAiFilteredCompanies(data);
+        
+        // Cache the data
+        sessionStorage.setItem('companies', JSON.stringify(data));
+        sessionStorage.setItem('companies_timestamp', Date.now().toString());
+      } catch (error) {
+        console.error('Error fetching companies:', error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchCompanies();
+  }, []);
 
   // Handle AI search
   const handleAiSearch = async () => {
     if (!searchQuery.trim()) {
-      setAiFilteredCompanies(mockCompanies);
+      setAiFilteredCompanies(allCompanies);
       setAppliedFilters(null);
       return;
     }
@@ -82,7 +124,7 @@ export default function Home() {
       }
     }
     setSearchQuery('');
-    setAiFilteredCompanies(mockCompanies);
+    setAiFilteredCompanies(allCompanies);
     setAppliedFilters(null);
     setSearchError(null);
   };
@@ -438,7 +480,14 @@ export default function Home() {
             <h2 className="text-3xl font-bold font-[family-name:var(--font-display)] text-black mb-6">
               Companies
             </h2>
-            <CompanyGrid companies={filteredCompanies} />
+            {loading ? (
+              <div className="flex flex-col items-center justify-center py-16">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mb-4"></div>
+                <p className="text-gray-600">Loading companies...</p>
+              </div>
+            ) : (
+              <CompanyGrid companies={filteredCompanies} />
+            )}
           </div>
         </div>
       </main>

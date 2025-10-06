@@ -1,6 +1,6 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { NextResponse } from 'next/server';
-import { mockCompanies } from '@/data/mockData';
+import { getAllCompanies } from '@/lib/db';
 
 const genAI = new GoogleGenerativeAI(process.env.GOOGLE_GEMINI_API_KEY || '');
 const filterCompaniesFunction = {
@@ -50,9 +50,12 @@ const filterCompaniesFunction = {
 export async function POST(request: Request) {
   try {
     const { query } = await request.json();
+    
+    // Fetch companies from database
+    const allCompanies = await getAllCompanies();
 
     if (!query || query.trim() === '') {
-      return NextResponse.json({ companies: mockCompanies });
+      return NextResponse.json({ companies: allCompanies });
     }
     // Initialize Gemini model with function calling
     const model = genAI.getGenerativeModel({
@@ -98,7 +101,7 @@ Be flexible and understand natural language queries like:
       const args = functionCall.args;
       
       // Apply filters to companies
-      const filteredCompanies = mockCompanies.filter((company) => {
+      const filteredCompanies = allCompanies.filter((company) => {
         // Industry filter
         if (args.industries && args.industries.length > 0) {
           if (!args.industries.includes(company.industry)) return false;
@@ -159,7 +162,7 @@ Be flexible and understand natural language queries like:
 
     // If no function call, return all companies
     return NextResponse.json({
-      companies: mockCompanies,
+      companies: allCompanies,
       filters: {},
       query,
     });
@@ -177,8 +180,11 @@ Be flexible and understand natural language queries like:
       errorMessage = `Search error: ${err.message}`;
     }
     
+    // Fetch companies for fallback
+    const allCompanies = await getAllCompanies();
+    
     return NextResponse.json(
-      { error: errorMessage, companies: mockCompanies },
+      { error: errorMessage, companies: allCompanies },
       { status: 500 }
     );
   }

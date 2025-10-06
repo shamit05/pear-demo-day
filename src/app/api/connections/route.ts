@@ -5,7 +5,7 @@ import {
   getConnectionRequestsByCompany,
   getConnectionRequestsByInvestor,
   getConnectionStats,
-} from '@/lib/connectionStore';
+} from '@/lib/db';
 
 // GET - Fetch connection requests
 export async function GET(request: Request) {

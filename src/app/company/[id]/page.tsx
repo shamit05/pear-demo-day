@@ -5,8 +5,8 @@ import { useParams, useRouter } from 'next/navigation';
 import HeaderNav from '@/components/HeaderNav';
 import Footer from '@/components/Footer';
 import ConnectionModal from '@/components/ConnectionModal';
-import { mockCompanies } from '@/data/mockData';
 import { User } from '@/types/user';
+import { Company } from '@/types';
 import Link from 'next/link';
 
 export default function CompanyDetailPage() {
@@ -16,6 +16,8 @@ export default function CompanyDetailPage() {
   const [founderModalOpen, setFounderModalOpen] = useState(false);
   const [selectedFounder, setSelectedFounder] = useState<{ name: string; role: string; bio: string; linkedIn: string; } | null>(null);
   const [user, setUser] = useState<User | null>(null);
+  const [company, setCompany] = useState<Company | null>(null);
+  const [loading, setLoading] = useState(true);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -36,8 +38,60 @@ export default function CompanyDetailPage() {
     }
   }, []);
 
-  // Find the company by ID
-  const company = mockCompanies.find(c => c.id === params.id);
+  // Fetch company data with caching
+  useEffect(() => {
+    async function fetchCompany() {
+      // Check if we have cached data in sessionStorage
+      const cacheKey = `company_${params.id}`;
+      const cachedData = sessionStorage.getItem(cacheKey);
+      const cacheTimestamp = sessionStorage.getItem(`${cacheKey}_timestamp`);
+      const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+      
+      if (cachedData && cacheTimestamp) {
+        const age = Date.now() - parseInt(cacheTimestamp);
+        if (age < CACHE_DURATION) {
+          // Use cached data
+          const data = JSON.parse(cachedData);
+          setCompany(data);
+          setLoading(false);
+          return;
+        }
+      }
+
+      // Fetch fresh data
+      try {
+        const response = await fetch(`/api/companies/${params.id}`);
+        if (response.ok) {
+          const data = await response.json();
+          setCompany(data);
+          
+          // Cache the data
+          sessionStorage.setItem(cacheKey, JSON.stringify(data));
+          sessionStorage.setItem(`${cacheKey}_timestamp`, Date.now().toString());
+        }
+      } catch (error) {
+        console.error('Error fetching company:', error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchCompany();
+  }, [params.id]);
+
+  if (loading) {
+    return (
+      <div className="flex flex-col min-h-screen">
+        <HeaderNav />
+        <main className="flex-grow container mx-auto px-4 sm:px-6 lg:px-8 py-16">
+          <div className="flex flex-col items-center justify-center py-32">
+            <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-purple-600 mb-4"></div>
+            <p className="text-gray-600 text-lg">Loading company details...</p>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
 
   if (!company) {
     return (
