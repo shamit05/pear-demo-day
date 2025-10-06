@@ -2,7 +2,7 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 import { NextResponse } from 'next/server';
 import { mockCompanies } from '@/data/mockData';
 
-const genAI = new GoogleGenerativeAI('AIzaSyBrDOHW8WfM89Qjtc5OHNPZX8e2mWlWacA');
+const genAI = new GoogleGenerativeAI(process.env.GOOGLE_GEMINI_API_KEY || '');
 const filterCompaniesFunction = {
   name: 'filter_companies',
   description: 'Filter companies based on various criteria like industry, stage, batch, tags, location, or any text in name/description',
