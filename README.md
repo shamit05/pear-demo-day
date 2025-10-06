@@ -27,7 +27,7 @@ Open [http://localhost:3000](http://localhost:3000)
 
 ## Tech Stack
 
-- Next.js 15
+- Next.js
 - TypeScript
 - Tailwind CSS
 - Google Gemini AI
