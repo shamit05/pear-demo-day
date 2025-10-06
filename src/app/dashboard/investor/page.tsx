@@ -30,9 +30,20 @@ export default function InvestorDashboard() {
   }, []);
 
   const fetchRequests = async (investorId: string) => {
-    const response = await fetch(`/api/connections?investorId=${investorId}`);
-    const data = await response.json();
-    setRequests(data);
+    try {
+      const response = await fetch(`/api/connections?investorId=${investorId}`);
+      const data = await response.json();
+      // Ensure data is an array
+      if (Array.isArray(data)) {
+        setRequests(data);
+      } else {
+        console.error('Invalid data format:', data);
+        setRequests([]);
+      }
+    } catch (error) {
+      console.error('Error fetching requests:', error);
+      setRequests([]);
+    }
   };
 
   const logout = () => {
@@ -42,8 +53,7 @@ export default function InvestorDashboard() {
 
   if (!user) return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
 
-  const unreviewedRequests = requests.filter(r => r.status === 'unreviewed');
-  const reviewedRequests = requests.filter(r => r.status === 'reviewed');
+  const pendingRequests = requests.filter(r => r.status === 'unreviewed' || r.status === 'reviewed');
   const acceptedRequests = requests.filter(r => r.status === 'accepted');
   const declinedRequests = requests.filter(r => r.status === 'declined');
 
@@ -85,15 +95,10 @@ export default function InvestorDashboard() {
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <div className="bg-yellow-50 rounded-lg p-6 border border-yellow-200">
-            <div className="text-sm font-medium text-yellow-800">Unreviewed</div>
-            <div className="text-3xl font-bold text-yellow-900 mt-2">{unreviewedRequests.length}</div>
-            <p className="text-xs text-yellow-700 mt-1">Pending Pear review</p>
-          </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <div className="bg-blue-50 rounded-lg p-6 border border-blue-200">
-            <div className="text-sm font-medium text-blue-800">With Founders</div>
-            <div className="text-3xl font-bold text-blue-900 mt-2">{reviewedRequests.length}</div>
+            <div className="text-sm font-medium text-blue-800">Pending</div>
+            <div className="text-3xl font-bold text-blue-900 mt-2">{pendingRequests.length}</div>
             <p className="text-xs text-blue-700 mt-1">Awaiting founder response</p>
           </div>
           <div className="bg-green-50 rounded-lg p-6 border border-green-200">
@@ -145,10 +150,10 @@ export default function InvestorDashboard() {
           </div>
         )}
 
-        {/* Pending with Founders */}
-        {reviewedRequests.length > 0 && (
+        {/* Pending Requests */}
+        {pendingRequests.length > 0 && (
           <div className="mb-8">
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">Awaiting Founder Response</h2>
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">Pending Requests</h2>
             <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
@@ -160,54 +165,7 @@ export default function InvestorDashboard() {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {reviewedRequests.map((request) => (
-                    <tr key={request.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4">
-                        <Link href={`/company/${request.companyId}`} className="text-sm font-medium text-gray-900 hover:text-[var(--button-color)]">
-                          {request.companyName}
-                        </Link>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex flex-wrap gap-1">
-                          {request.interests.slice(0, 2).map((interest) => (
-                            <span key={interest} className="px-2 py-1 text-xs bg-gray-100 rounded">
-                              {interest}
-                            </span>
-                          ))}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-500">
-                        {new Date(request.reviewedAt || request.createdAt).toLocaleDateString()}
-                      </td>
-                      <td className="px-6 py-4">
-                        <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs font-semibold rounded-full">
-                          With Founder
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
-
-        {/* Under Review */}
-        {unreviewedRequests.length > 0 && (
-          <div className="mb-8">
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">Under Review by Pear</h2>
-            <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Company</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Your Interests</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Submitted</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {unreviewedRequests.map((request: any) => (
+                  {pendingRequests.map((request) => (
                     <tr key={request.id} className="hover:bg-gray-50">
                       <td className="px-6 py-4">
                         <Link href={`/company/${request.companyId}`} className="text-sm font-medium text-gray-900 hover:text-[var(--button-color)]">
@@ -227,8 +185,8 @@ export default function InvestorDashboard() {
                         {new Date(request.createdAt).toLocaleDateString()}
                       </td>
                       <td className="px-6 py-4">
-                        <span className="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs font-semibold rounded-full">
-                          Under Review
+                        <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs font-semibold rounded-full">
+                          Pending
                         </span>
                       </td>
                     </tr>

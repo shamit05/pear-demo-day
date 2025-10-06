@@ -16,21 +16,22 @@ export async function GET(request: Request) {
     const stats = searchParams.get('stats');
 
     if (stats === 'true') {
-      return NextResponse.json(getConnectionStats());
+      const statsData = await getConnectionStats();
+      return NextResponse.json(statsData);
     }
 
     if (companyId) {
-      const requests = getConnectionRequestsByCompany(companyId);
+      const requests = await getConnectionRequestsByCompany(companyId);
       return NextResponse.json(requests);
     }
 
     if (investorId) {
-      const requests = getConnectionRequestsByInvestor(investorId);
+      const requests = await getConnectionRequestsByInvestor(investorId);
       return NextResponse.json(requests);
     }
 
     // Return all requests (admin view)
-    const requests = getAllConnectionRequests();
+    const requests = await getAllConnectionRequests();
     return NextResponse.json(requests);
   } catch (error) {
     console.error('Error fetching connections:', error);
@@ -68,7 +69,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const newRequest = createConnectionRequest({
+    const newRequest = await createConnectionRequest({
       investorId: investorId || 'guest',
       investorName,
       investorEmail,

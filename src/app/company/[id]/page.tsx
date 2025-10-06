@@ -117,6 +117,7 @@ export default function CompanyDetailPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          investorId: user?.id || 'guest',
           investorName: formData.name,
           investorEmail: formData.email,
           investorFirm: formData.firm,

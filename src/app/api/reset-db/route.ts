@@ -1,17 +1,14 @@
 import { NextResponse } from 'next/server';
-import { createCompany, createFounder, getAllCompanies, createConnectionRequest } from '@/lib/db';
+import { sql } from '@vercel/postgres';
+import { createCompany, createFounder, createConnectionRequest } from '@/lib/db';
 import { mockCompanies, mockFounders } from '@/data/mockData';
 
 export async function POST() {
   try {
-    // Check if data already exists
-    const existingCompanies = await getAllCompanies();
-    if (existingCompanies.length > 0) {
-      return NextResponse.json({
-        message: 'Database already seeded',
-        count: existingCompanies.length
-      });
-    }
+    // Clear all tables
+    await sql`DELETE FROM connection_requests`;
+    await sql`DELETE FROM founders`;
+    await sql`DELETE FROM companies`;
 
     // Seed companies
     for (const company of mockCompanies) {
@@ -24,7 +21,7 @@ export async function POST() {
       await createFounder(founder);
     }
 
-    // Seed some sample connection requests
+    // Seed sample connection requests
     const sampleRequests = [
       {
         investorId: 'investor-1',
@@ -61,15 +58,15 @@ export async function POST() {
     }
 
     return NextResponse.json({
-      message: 'Database seeded successfully',
+      message: 'Database reset and seeded successfully',
       companies: mockCompanies.length,
       founders: mockFounders.length,
       connectionRequests: sampleRequests.length
     });
   } catch (error) {
-    console.error('Error seeding database:', error);
+    console.error('Error resetting database:', error);
     return NextResponse.json(
-      { error: 'Failed to seed database', details: String(error) },
+      { error: 'Failed to reset database', details: String(error) },
       { status: 500 }
     );
   }

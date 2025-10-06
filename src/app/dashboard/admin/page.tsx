@@ -35,9 +35,20 @@ export default function AdminDashboard() {
   }, []);
 
   const fetchRequests = async () => {
-    const response = await fetch('/api/connections');
-    const data = await response.json();
-    setRequests(data);
+    try {
+      const response = await fetch('/api/connections');
+      const data = await response.json();
+      // Ensure data is an array
+      if (Array.isArray(data)) {
+        setRequests(data);
+      } else {
+        console.error('Invalid data format:', data);
+        setRequests([]);
+      }
+    } catch (error) {
+      console.error('Error fetching requests:', error);
+      setRequests([]);
+    }
   };
 
   const fetchStats = async () => {

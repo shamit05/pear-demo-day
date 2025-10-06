@@ -32,10 +32,20 @@ export default function FounderDashboard() {
   }, []);
 
   const fetchRequests = async (companyId: string) => {
-    const response = await fetch(`/api/connections?companyId=${companyId}`);
-    const data = await response.json();
-    // Show all requests - founders can see everything
-    setRequests(data);
+    try {
+      const response = await fetch(`/api/connections?companyId=${companyId}`);
+      const data = await response.json();
+      // Ensure data is an array
+      if (Array.isArray(data)) {
+        setRequests(data);
+      } else {
+        console.error('Invalid data format:', data);
+        setRequests([]);
+      }
+    } catch (error) {
+      console.error('Error fetching requests:', error);
+      setRequests([]);
+    }
   };
 
   const respondToRequest = async (id: string, status: 'accepted' | 'declined', response: string) => {
